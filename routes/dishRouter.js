@@ -81,4 +81,155 @@ dishRouter.route('/:dishId')
     .catch((err) => next(err));
 });
 
+
+//For Comments (crud for embedded subdocument in a document in mongo)
+dishRouter.route('/:dishId/comments')            
+.get((req, res, next) => {                  //Getting the comment
+    Dishes.findById(req.params.dishId)                         
+        .then((dish) => {                
+            if(dish != null){               //Means the dish with particular id is returned 
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(dish.comments);    //Cause we want the comments of that particular dish
+            }         
+            else{
+                err = new Error('Dish ' + req.params.dishId + ' not found');
+                err.statusCode = 404;
+                return next(err);           //We'll leave it for error handler
+            }  
+        },(err) => next(err))
+        .catch((err) => next(err));         
+})
+.post((req, res, next) => {                 //Posting a new comment
+    Dishes.findById(req.params.dishId)                
+    .then((dish) => {
+        if(dish != null){                   //Means the dish with particular id is returned 
+            dish.comments.push(req.body);   //Then we'll add the new comment
+            dish.save()
+            .then((dish) => {               //And then return the saved data
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(dish);
+            }, (err) => next(err));
+        }         
+        else{
+            err = new Error('Dish ' + req.params.dishId + ' not found');
+            err.statusCode = 404;
+            return next(err);               //We'll leave it for error handler
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+.put((req, res, next) => {                  //Since put in supported, we'll leave it same
+    res.statusCode = 403;
+    res.end("PUT operation not supported on /dishes " + req.params.dishId + "/comments");
+})
+.delete((req, res, next) => {
+    Dishes.findById(req.params.dishId)
+    .then((dish) => {
+        if (dish != null) {
+            for (var i = (dish.comments.length -1); i >= 0; i--) {
+                dish.comments.id(dish.comments[i]._id).remove();
+            }
+            dish.save()
+            .then((dish) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(dish);                
+            }, (err) => next(err));
+        }
+        else {
+            err = new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));    
+});
+
+
+
+//OPERATION ON COMMENTS ID
+dishRouter.route('/:dishId/comments/:commentId')
+.get((req, res, next) => {      
+    Dishes.findById(req.params.dishId)     
+    .then((dish) => {                       
+        if(dish != null && dish.comments.id(req.params.commentId) != null){//Means id both dish and the comment inside that dish exists       
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(dish.comments.id(req.params.commentId));//Cause we want that particular comment of that particular dish, entered by the user
+        }         
+        else if(dish == null){              //If dish doesn't exists
+            err = new Error('Dish ' + req.params.dishId + ' not found');
+            err.statusCode = 404;
+            return next(err);           
+        }  
+        else{                               //If comment doesn't exists
+            err = new Error('comment ' + req.params.commentId  + ' not found');
+            err.statusCode = 404;
+            return next(err); 
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+.post((req, res, next) => {                   
+    res.statusCode = 403;
+    res.end("POST operation not supported of /dishes/" + req.params.dishId + "/comments/" + req.params.commentId);
+})
+.put((req, res, next) => {
+    Dishes.findById(req.params.dishId)
+    .then((dish) => {
+        if (dish != null && dish.comments.id(req.params.commentId) != null) {
+            if (req.body.rating) {
+                dish.comments.id(req.params.commentId).rating = req.body.rating;
+            }
+            if (req.body.comment) {
+                dish.comments.id(req.params.commentId).comment = req.body.comment;                
+            }
+            dish.save()
+            .then((dish) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(dish);                
+            }, (err) => next(err));
+        }
+        else if (dish == null) {
+            err = new Error('Dish ' + req.params.dishId + ' not found');
+            err.status = 404;
+            return next(err);
+        }
+        else {
+            err = new Error('Comment ' + req.params.commentId + ' not found');
+            err.status = 404;
+            return next(err);            
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+})
+.delete((req, res, next) => {     
+    Dishes.findById(req.params.dishId)
+    .then((dish) => {                       
+        if(dish != null && dish.comments.id(req.params.commentId) != null){//Means id both dish and the comment inside that dish exists       
+            dish.comments.id(req.params.commentId).remove();
+            dish.save()
+            .then((dish) => {               //And then return the saved data
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(dish);
+            }, (err) => next(err));
+        }         
+        else if(dish == null){              //If dish doesn't exists
+            err = new Error('Dish ' + req.params.dishId + ' not found');
+            err.statusCode = 404;
+            return next(err);           
+        }  
+        else{                               //If comment doesn't exists
+            err = new Error('comment ' + req.params.commentId  + ' not found');
+            err.statusCode = 404;
+            return next(err); 
+        }
+    }, (err) => next(err))
+    .catch((err) => next(err));
+});
+
 module.exports = dishRouter;        //Cause we gotta export it to index file
