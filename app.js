@@ -12,6 +12,8 @@ var leaderRouter = require('./routes/leaderRouter');
 
 const mongoose = require('mongoose');           //We'll use the mongoose
 const dishes = require('./models/dishes');      //For the mongoose schemas
+const promotions = require('./models/promotions');
+const leaders = require('./models/leaders');
 const url = 'mongodb://127.0.0.1:27017/conFusion'; //Linking the url to mongoDB server
 const connect = mongoose.connect(url);          //Connecting to the mongodb server
 
@@ -36,7 +38,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
-app.use('/leader', leaderRouter);  
+app.use('/leaders', leaderRouter);  
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

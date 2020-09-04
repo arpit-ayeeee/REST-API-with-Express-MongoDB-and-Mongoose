@@ -82,7 +82,7 @@ dishRouter.route('/:dishId')
 });
 
 
-//For Comments (crud for embedded subdocument in a document in mongo)
+//For Comments (crud for embedded subdocuments in a document in mongo)
 dishRouter.route('/:dishId/comments')            
 .get((req, res, next) => {                  //Getting the comment
     Dishes.findById(req.params.dishId)                         
