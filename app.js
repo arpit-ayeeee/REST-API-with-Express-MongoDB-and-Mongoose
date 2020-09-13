@@ -1,7 +1,7 @@
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser');
+var cookieParser = require('cookie-parser');    //Just like body-parser, it's used to parse the body of cookie
 var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
@@ -31,33 +31,49 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser('12345-67890-09876-54321'));//It is use d to parse the body of the cookie and we'll provide a secret-key as a parameter              
 
+//AUTHENTICATION
 function auth(req, res,next){
-  console.log(req.headers);
+  console.log(req.signedCookies);               //We'll check wheather we get a signed cookie or not
 
-  var authHeader = req.headers.authorization;   //We'll get hold of the authorization header added by the client-side
-  if(!authHeader){                              //If it's null, ie no username and pass provided by the user
-    var err = new Error('You are not authenticated!');
-     
-    res.setHeader('WWW-Authenticate','Basic');  //Then we'll challenge the user, by sending back a response mesage
-    err.status = 401;                           //For unauthorised access
-    return next(err);                           //This will directly go to error handler
-  }
-  //Else authorisation header exists
-  var auth = new Buffer(authHeader.split(' ')[1], 'base64').toString().split(':');//The header after splitting has two elements,an array of Basic and base64 encoded string, so we took the second (base64 encoded string ) element which has username and password, convert it to string and split it again into two parts(username and pass)
-  //At the end this auth will contain two items, username and pass, which is extracted from the base64 string
-  var username = auth[0];
-  var password = auth[1]; 
-  if(username === 'admin' && password === 'password'){
-    next();                                     //So, if this condition clears, this will pass on to next operation
-  }
-  else{                                         //That means username and pass did not match 
-    var err = new Error('You are not authenticated!');
+  //If incoming req doesn't have user field in signedCookie, that means the user hasn't been authorised yet, so we'll autheticate it and setup a cookie if it's authenticated
+  if(!req.signedCookies.user){                 
+    var authHeader = req.headers.authorization; //We'll get hold of the authorization header added by the client-side
+    if(!authHeader){                            //If it's null, ie no username and pass provided by the user
+      var err = new Error('You are not authenticated!');
+      
+      res.setHeader('WWW-Authenticate','Basic');  //Then we'll challenge the user, by sending back a response mesage
+      err.status = 401;                           //For unauthorised access
+      return next(err);                           //This will directly go to error handler
+    }
+    //Else authorisation header exists
+    var auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');//The header after splitting has two elements,an array of Basic and base64 encoded string, so we took the second (base64 encoded string ) element which has username and password, convert it to string and split it again into two parts(username and pass)
+    //At the end this auth will contain two items, username and pass, which is extracted from the base64 string
+    var username = auth[0];
+    var password = auth[1]; 
+    if(username === 'admin' && password === 'password'){
+      //Now when user authorises by passing the condition for admin, we'll setup a cookie for it
+      res.cookie('user', 'admin', {signed: true});//It takes three parameters, name, value and signed or not
+      next();                                     
+    }
+    else{                                       //That means username and pass did not match 
+      var err = new Error('You are not authenticated!');
 
-    res.setHeader('WWW-Authenticate','Basic');  //Then we'll challenge the user, by sending back a response mesage
-    err.status = 401;                           //For unauthorised access
-    return next(err); 
+      res.setHeader('WWW-Authenticate','Basic');//Then we'll challenge the user, by sending back a response mesage
+      err.status = 401;                         //For unauthorised access
+      return next(err); 
+    }
+  }
+  else{                                         //Means the user property for the signed cookie already exists
+    if(req.signedCookies.user === 'admin'){     //If it matches the only defined authentication
+      next();
+    } 
+    else{                                       //Means wrong cookie, user isn't authenticated
+      var err = new Error('You are not authenticated!');
+      err.status = 401;                        
+      return next(err); 
+    }
   }
 };
 app.use(auth);                                  //We'll apply authentication right before we'll serve the data
