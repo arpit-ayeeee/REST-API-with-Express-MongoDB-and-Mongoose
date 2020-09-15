@@ -42,45 +42,29 @@ app.use(session({                               //We'll use session middleware i
   store: new FileStore()
 }));
 
-//AUTHENTICATION
+//Means user can access the index and users endpoint w/o getting autheticated
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
+//AUTHENTICATION (To clear this user needs to get authenticated from prev step)
 function auth(req, res,next){
   console.log(req.session);                     //We'll check wheather we get a session from the express session or not
 
   //If incoming req doesn't have user field in session, that means the user hasn't been authorised yet, so we'll autheticate it and setup a session if it's authenticated
-  if(!req.session.user){                 
-    var authHeader = req.headers.authorization; //We'll get hold of the authorization header added by the client-side
-    if(!authHeader){                            //If it's null, ie no username and pass provided by the user
+  if(!req.session.user){                
       var err = new Error('You are not authenticated!');
       
       res.setHeader('WWW-Authenticate','Basic');//Then we'll challenge the user, by sending back a response mesage
       err.status = 401;                         //For unauthorised access
       return next(err);                         //This will directly go to error handler
     }
-    //Else authorisation header exists
-    var auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');//The header after splitting has two elements,an array of Basic and base64 encoded string, so we took the second (base64 encoded string ) element which has username and password, convert it to string and split it again into two parts(username and pass)
-    //At the end this auth will contain two items, username and pass, which is extracted from the base64 string
-    var username = auth[0];
-    var password = auth[1]; 
-    if(username === 'admin' && password === 'password'){
-      //Now when user authorises by passing the condition for admin, we'll setup a session for it
-      req.session.user = 'admin';               //We'll setup the user property from session to admin
-      next();                                     
-    }
-    else{                                       //That means username and pass did not match 
-      var err = new Error('You are not authenticated!');
-
-      res.setHeader('WWW-Authenticate','Basic');//Then we'll challenge the user, by sending back a response mesage
-      err.status = 401;                         //For unauthorised access
-      return next(err); 
-    }
-  }
   else{                                         //Means the user property for the signed cookie already exists
-    if(req.sesion.user === 'admin'){            //If it matches the only defined authentication
+    if(req.session.user === 'authenticated'){            //If it matches the only defined authentication
       next();
     } 
     else{                                       //Means wrong cookie, user isn't authenticated
       var err = new Error('You are not authenticated!');
-      err.status = 401;                        
+      err.status = 403;                        
       return next(err); 
     }
   }
@@ -89,8 +73,6 @@ app.use(auth);                                  //We'll apply authentication rig
 
 //Serving all the data
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leaderRouter);  
