@@ -1,20 +1,15 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var passportLocalMongoose = require('passport-local-mongoose');
+//The username and password schema will be automatically be added by the passport-local-mongoose plugin
 
 var User = new Schema({
-    username: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    password: {
-        type: String,
-        required: true
-    },
     admin: {                                    //Means when the new user is created, by default, it wont be an admin
         type: Boolean,
         default: false
     }
 });
+
+User.plugin(passportLocalMongoose);             //By this we'll make the passport-local-mongoose plugin available to the User schema
 
 module.exports = mongoose.model('User', User);

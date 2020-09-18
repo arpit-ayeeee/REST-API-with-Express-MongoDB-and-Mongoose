@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');    //Just like body-parser, it's us
 var logger = require('morgan');
 var session = require('express-session');
 var FileStore = require('session-file-store')(session);//It'll take session as a parameters
+var passport = require('passport');
+var autheticate = require('./authenticate');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -42,31 +44,23 @@ app.use(session({                               //We'll use session middleware i
   store: new FileStore()
 }));
 
+app.use(passport.initialize());
+app.use(passport.session());                    //This is used to take record of the session, so that when same user sends requests again, the passport loads req.user automatically
+
 //Means user can access the index and users endpoint w/o getting autheticated
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 //AUTHENTICATION (To clear this user needs to get authenticated from prev step)
 function auth(req, res,next){
-  console.log(req.session);                     //We'll check wheather we get a session from the express session or not
-
-  //If incoming req doesn't have user field in session, that means the user hasn't been authorised yet, so we'll autheticate it and setup a session if it's authenticated
-  if(!req.session.user){                
+  //If req.user hasn't already been added by the passport sessions, that means the user hasn't been authorised yet, so we'll autheticate it and setup a session if it's authenticated
+  if(!req.user){                
       var err = new Error('You are not authenticated!');
-      
-      res.setHeader('WWW-Authenticate','Basic');//Then we'll challenge the user, by sending back a response mesage
-      err.status = 401;                         //For unauthorised access
+      err.status = 403;                         //For unauthorised access
       return next(err);                         //This will directly go to error handler
     }
-  else{                                         //Means the user property for the signed cookie already exists
-    if(req.session.user === 'authenticated'){            //If it matches the only defined authentication
-      next();
-    } 
-    else{                                       //Means wrong cookie, user isn't authenticated
-      var err = new Error('You are not authenticated!');
-      err.status = 403;                        
-      return next(err); 
-    }
+  else{                                         //Means req.user is automatically loaded by the passport session, so user is autenticated
+    next();
   }
 };
 app.use(auth);                                  //We'll apply authentication right before we'll serve the data
