@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 var User = require('../models/user');                        //Importng the modelSchema     
 const { Router } = require('express');
 var passport = require('passport');
+var authenticate = require('../authenticate');
 
 var router = express.Router();
 router.use(bodyParser.json()); 
@@ -32,11 +33,16 @@ router.post('/signup', (req, res, next) => {
 });
 
 //LOGIN
-//We'll simply authentictae the user and when it;s done, we'll pass areply message
+//We'll simply authenticate the user using local strategy and when it's done, we'll pass reply message and give back a token which will later be used 
 router.post('/login', passport.authenticate('local'), (req, res) => {
+  var token = authenticate.getToken({_id: req.user._id}); //We already had a method to create token, which takes user as a payload for parameter
   res.statusCode= 200;
   res.setHeader('Content-type','Application/json');
-  res.json({success: true, status: 'Login Successfull!'});
+  res.json({
+    success: true,
+    token: token,                                         //We'll pass the token back
+    status: 'Login Successfull!'
+  });
 })
 
 
