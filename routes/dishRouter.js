@@ -12,8 +12,9 @@ dishRouter.use(bodyParser.json());
 //app.all will be executed for all the requests(get, put, post, delete). We won't use app.all, we'll expicitly declare all the endpoints
 
 dishRouter.route('/')            
-.get((req, res, next) => {                  //We'll allow this without any auth
+.get((req, res, next) => {                  //We'll allow this without any aut
     Dishes.find({})                         //GET is used to fetch, so we'll use the find method supported by the mongoose
+        .populate('comments.author')        //Says when the dishes doc is being constructed, we'll populate the author field with the user document schema
         .then((dishes) => {                 //Once we get the data, we convert it in json format
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
@@ -50,6 +51,7 @@ dishRouter.route('/')
 dishRouter.route('/:dishId')
 .get((req, res, next) => {      
     Dishes.findById(req.params.dishId)      //This time we'll use findById method to get the dish
+    .populate('comments.author') 
     .then((dish) => {                       //Then we'll perform the same operations
         res.statusCode = 200;
         res.setHeader('Content-Type','application/json');
@@ -87,6 +89,7 @@ dishRouter.route('/:dishId')
 dishRouter.route('/:dishId/comments')            
 .get((req, res, next) => {                  //Getting the comment
     Dishes.findById(req.params.dishId)                         
+        .populate('comments.author') 
         .then((dish) => {                
             if(dish != null){               //Means the dish with particular id is returned 
                 res.statusCode = 200;
@@ -105,12 +108,17 @@ dishRouter.route('/:dishId/comments')
     Dishes.findById(req.params.dishId)                
     .then((dish) => {
         if(dish != null){                   //Means the dish with particular id is returned 
+            req.body.author = req.user._id; //Since in dish schema, author stores objectId refering to user schema. Since user is verified, it's info will be in req.user
             dish.comments.push(req.body);   //Then we'll add the new comment
             dish.save()
             .then((dish) => {               //And then return the saved data
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(dish);
+                Dishes.findById(dish._id)   //Once we getback dishes, we'll populate it with the author
+                    .populate('comments.author')
+                    .then((dish) => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(dish);
+                    })
             }, (err) => next(err));
         }         
         else{
@@ -154,6 +162,7 @@ dishRouter.route('/:dishId/comments')
 dishRouter.route('/:dishId/comments/:commentId')
 .get((req, res, next) => {      
     Dishes.findById(req.params.dishId)     
+    .populate('comments.author') 
     .then((dish) => {                       
         if(dish != null && dish.comments.id(req.params.commentId) != null){//Means id both dish and the comment inside that dish exists       
             res.statusCode = 200;
@@ -180,7 +189,7 @@ dishRouter.route('/:dishId/comments/:commentId')
 .put(authenticate.verifyUser, (req, res, next) => {
     Dishes.findById(req.params.dishId)
     .then((dish) => {
-        if (dish != null && dish.comments.id(req.params.commentId) != null) {
+        if (dish != null && dish.comments.id(req.params.commentId) != null) { 
             if (req.body.rating) {
                 dish.comments.id(req.params.commentId).rating = req.body.rating;
             }
@@ -189,9 +198,13 @@ dishRouter.route('/:dishId/comments/:commentId')
             }
             dish.save()
             .then((dish) => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(dish);                
+                Dishes.findById(dish._id)           //Once we get back the updated dish, we'll populate it back withh the authors
+                    .populate('comments.author')
+                    .then((dish) => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(dish);
+                    })                
             }, (err) => next(err));
         }
         else if (dish == null) {
@@ -213,10 +226,14 @@ dishRouter.route('/:dishId/comments/:commentId')
         if(dish != null && dish.comments.id(req.params.commentId) != null){//Means id both dish and the comment inside that dish exists       
             dish.comments.id(req.params.commentId).remove();
             dish.save()
-            .then((dish) => {               //And then return the saved data
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(dish);
+            .then((dish) => {                       //Then we'll return the dish back
+                Dishes.findById(dish._id)           //Once we get back the updated dish, we'll populate it back withh the authors
+                    .populate('comments.author')
+                    .then((dish) => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(dish);
+                    })                
             }, (err) => next(err));
         }         
         else if(dish == null){              //If dish doesn't exists

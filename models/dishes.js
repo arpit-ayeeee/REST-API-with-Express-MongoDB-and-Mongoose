@@ -1,5 +1,6 @@
 //THIS IS MONGOOSE FILE FOR DISHES SCHEMA'S FOR THE MONGODB DATABASE
 const mongoose = require('mongoose');
+const user = require('./user');
 const Schema = mongoose.Schema;
 require('mongoose-currency').loadType(mongoose);    //This will load the new currency type in mongoose and then we'll use it
 const Currency = mongoose.Types.Currency;           //We declare a type which is just like other ie string, number
@@ -17,7 +18,8 @@ const commentSchema = new Schema({
         required: true,
     },
     author: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,       //This will store the reference to Id of User schema document in order to populate
+        ref: 'User',
         required: true
     }
 },{

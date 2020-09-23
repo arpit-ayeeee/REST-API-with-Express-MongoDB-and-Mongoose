@@ -23,11 +23,23 @@ router.post('/signup', (req, res, next) => {
         res.json({err: err});
       } 
       else{                                      //We'll authenticate the same user we just registered and send a message in the callback function
-        passport.authenticate('local')(req, res, () => {
-          res.statusCode= 200;
-          res.setHeader('Content-type','Application/json');
-          res.json({success: true, status: 'Registration Successfull!'});
-        })
+        if(req.body.firstname)                   //Once user is signed up, if there is first and last name we add it up to the user schema
+          user.firstname = req.body.firstname;
+        if(req.body.lasttname)
+          user.lastname = req.body.lastname;
+        user.save((err,user) => {
+          if(err){
+            res.statusCode= 500;
+            res.setHeader('Content-type','Application/json');
+            res.json({err: err});
+            return;
+          }
+          passport.authenticate('local')(req, res, () => {//We'll authenticate the same user we just registered and send a message in the callback function, tot ensure that the user registrationis successfull
+            res.statusCode= 200;
+            res.setHeader('Content-type','Application/json');
+            res.json({success: true, status: 'Registration Successfull!'});
+          })
+        }) ;
       }
     })
 });

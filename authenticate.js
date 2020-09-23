@@ -16,10 +16,12 @@ passport.deserializeUser(User.deserializeUser());
 //Since we used the passport-local-mongoose plugin, it adds a method to User schema called authenticate 
 //The autheticate method will itself act as an authetication function for the LocalStrategy
 //Serialize and deserialize methods are provided by the mongoose plugin in User schema, which take cares for the support for sessions in passport.
+
+
+
+
+
 //JwtStrategy is supported by passport-jwt node module, which will provide us with JSON web token based strategy for configurng our passport module.
-
-
-
 //Get token
 exports.getToken = function(user){             //We'll create a token using jwt, by passing user which is an object
     return jwt.sign(user, config.secretKey,    //This jwt command create a jwt token, it takes user object, secretKey and some other parameters such as expiresIn. 
@@ -45,7 +47,6 @@ exports.jwtPassport = passport.use(new JwtStrategy(opts, (jwt_payload, done) => 
             }
         });
 }));
-
 exports.verifyUser = passport.authenticate('jwt', {session: false});
 //session: false, means we're not gonna create session in this case
 //The first parameter specifies the strategy we're goin to be using
