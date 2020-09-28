@@ -6,6 +6,7 @@ var JwtStrategy = require('passport-jwt').Strategy;
 var ExtractJwt = require('passport-jwt').ExtractJwt;
 var jwt = require('jsonwebtoken');
 var config = require('./config');
+const Dishes = require('./models/dishes');
 
 //CONFIGURING the passport with LocalStrategy and exporting it
 exports.local = passport.use(new LocalStrategy(User.authenticate()));
@@ -53,3 +54,39 @@ exports.verifyUser = passport.authenticate('jwt', {session: false});
 //This verifyUser method makes use of the token that comes in the authHeader and then verifyies the user
 //Now anywhere if we want to verify the user we can simply call this above method
 
+ 
+
+/// VERIFYADMIN
+exports.verifyAdmin = (req, res, next) => {
+    if (req.user.admin) {
+      next();
+    } else {
+      let err = new Error('You are not authorized to perform this operation!');
+      err.status = 403;
+      return next(err);
+    }
+  };
+
+
+
+
+
+//   exports.verifyUser = function (req, res, next) {
+//     var token = req.body.token || req.query.token || req.headers['x-access-token'];
+//     if (token) {
+//         jwt.verify(token, config.secretKey, function (err, decoded) {
+//             if (err) {
+//                 var err = new Error('You are not authenticated!');
+//                 err.status = 401;
+//                 return next(err);
+//             } else {
+//                 req.decoded = decoded;
+//                 next();
+//             }
+//         });
+//     } else {
+//         var err = new Error('No token provided!');
+//         err.status = 403;
+//         return next(err);
+//     }
+// };

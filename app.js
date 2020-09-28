@@ -27,6 +27,16 @@ connect.then((db) => {                          //This will establish the connec
 
 var app = express();
 
+//Middleware to redirect to the secure port
+app.all('*', (req, res, next) => {
+  if(req.secure){                               //If incoming request is already secure, so req.secure flag will be set to true
+    return next();
+  }
+  else{                                         //If incoming request is not secure, so req.secure flag will be set to falseß
+    res.redirect(307, 'https://' + req.hostname + ':' + app.get('secPort') + req.url);//307 says the port is changed to diffrent url
+  }
+});
+
 // View engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');

@@ -10,7 +10,7 @@ var User = new Schema({
     },
     lastname: {
         type: String,
-        dafault: ''
+        default: ''
     },
     admin: {                                    //Means when the new user is created, by default, it wont be an admin
         type: Boolean,

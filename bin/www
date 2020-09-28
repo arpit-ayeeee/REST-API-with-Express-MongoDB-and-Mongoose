@@ -7,27 +7,41 @@
 var app = require('../app');
 var debug = require('debug')('frugalserver:server');
 var http = require('http');
+var https = require('https');                                   //Importing te core module
+var fs = require('fs');                                         //Importing the file system modules
 
 /**
  * Get port from environment and store in Express.
  */
-
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
+app.set('secPort', port+443);                                   //We gonna setup a secure port. Cause normal http runs on port number 80 while the secure port runs on 443. So our https server runs in port no 3443
+
+
 
 /**
  * Create HTTP server.
  */
-
 var server = http.createServer(app);
+
 
 /**
  * Listen on provided port, on all network interfaces.
- */
-
+ */                              //HTTP
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+                                 //HTTPS                              
+var options = {                                                 //We're gonna keep running the http server, so that any requests that comes to it, will be redirected to the https server
+  key: fs.readFileSync(__dirname + '/private.key'),             //We're gonna read the whole file synchronously, by providng the path name
+  cert: fs.readFileSync(__dirname + '/certificate.pem')         //Reading synchronously means first completing the read and then continuing the process
+};
+var secureServer = https.createServer(options, app);            //We gonna create https server
+secureServer.listen(app.get('secPort'), () => {                 //Then make the app listen at secure port
+  console.log("Secure Server listening on port ", app.get('secPort'));
+});                        
+secureServer.on('error', onError);
+secureServer.on('listening', onListening);
 
 /**
  * Normalize a port into a number, string, or false.
